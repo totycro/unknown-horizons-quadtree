@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+_Name=Unknown Horizons
+_Comment=A 2D real time strategy simulation with an emphasis on economy and city building
+Icon=unknown-horizons
+Exec=unknown-horizons
+Terminal=false
+Categories=Game;StrategyGame;Simulation;
