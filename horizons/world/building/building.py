@@ -46,6 +46,7 @@ class BasicBuilding(AmbientSound, ConcretObject):
 	tearable = True
 	show_buildingtool_preview_tab = True # whether to show the tab of the building. not shown for
 																			# e.g. paths. the tab hides a part of the map.
+	extends_settlement = False
 	enemy_tabs = (EnemyBuildingOverviewTab, )
 	layer = LAYERS.OBJECTS
 

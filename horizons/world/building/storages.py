@@ -37,6 +37,7 @@ class StorageBuilding(SelectableBuilding, BuildableSingle, StorageResourceHandle
 	"""
 	tabs = (BranchOfficeOverviewTab, InventoryTab, BuySellTab, AccountTab)
 	has_own_inventory = False # we share island inventory
+	extends_settlement = True
 	def __init__(self, x, y, owner, instance = None, **kwargs):
 		super(StorageBuilding, self).__init__(x = x, y = y, owner = owner, instance = instance, **kwargs)
 		self.__init()

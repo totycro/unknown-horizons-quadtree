@@ -263,8 +263,9 @@ class Island(WorldObject):
 		"""Adds a building to the island at the position x, y with player as the owner.
 		@param building: Building class instance of the building that is to be added.
 		@param player: int id of the player that owns the settlement"""
-		for building.settlement in self.get_settlements(building.position, player):
-			self.assign_settlement(building.position, building.radius, building.settlement)
+		if building.extends_settlement:
+			for building.settlement in self.get_settlements(building.position, player):
+				self.assign_settlement(building.position, building.radius, building.settlement)
 			break
 
 		# Set all tiles in the buildings position(rect)
