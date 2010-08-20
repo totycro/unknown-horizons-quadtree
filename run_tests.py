@@ -51,9 +51,11 @@ if __name__ == '__main__':
 	# this test isn't maintained any more:
 	# suite.addTest(loader.loadTestsFromModule(pathfinding))
 
-	suite.addTest(loader.loadTestsFromModule(shapes))
+	#suite.addTest(loader.loadTestsFromModule(shapes))
 
-	suite.addTest(loader.loadTestsFromModule(storage))
+	#suite.addTest(loader.loadTestsFromModule(storage))
+
+	suite.addTest(loader.loadTestsFromModule(tilequadtree))
 
 	suite.run(result)
 

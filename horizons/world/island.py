@@ -32,6 +32,7 @@ from horizons.world.pathfinding.pathnodes import IslandPathNodes
 from horizons.constants import BUILDINGS, UNITS
 from horizons.campaign import CONDITIONS
 from horizons.world.providerhandler import ProviderHandler
+from horizons.util.tilequadtree import TileQuadTree
 
 class Island(WorldObject):
 	"""The Island class represents an Island by keeping a list of all instances on the map,
@@ -107,12 +108,15 @@ class Island(WorldObject):
 		# NOTE: it contains tiles, that are not on the island!
 		self.rect = Rect(Point(p_x, p_y), width, height)
 
+		self.tilequadtree = TileQuadTree(self.rect)
+
 		self.ground_map = {}
 		for (rel_x, rel_y, ground_id) in db("select x, y, ground_id from ground"): # Load grounds
 			ground = Entities.grounds[ground_id](self.session, self.origin.x + rel_x, self.origin.y + rel_y)
 			# These are important for pathfinding and building to check if the ground tile
 			# is blocked in any way.
 			self.ground_map[(ground.x, ground.y)] = ground
+			self.tilequadtree.add_tile(ground)
 
 		self.settlements = []
 		self.buildings = []
@@ -266,7 +270,7 @@ class Island(WorldObject):
 		if building.extends_settlement:
 			for building.settlement in self.get_settlements(building.position, player):
 				self.assign_settlement(building.position, building.radius, building.settlement)
-			break
+				break
 
 		# Set all tiles in the buildings position(rect)
 		for point in building.position:
