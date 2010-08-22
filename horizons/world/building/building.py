@@ -318,14 +318,12 @@ class SelectableBuilding(object):
 		@param settlement: Settlement instance the building belongs to"""
 		renderer = session.view.renderer['InstanceRenderer']
 
-		"""
 		import cProfile as profile
 		import tempfile
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print 'profile to ', outfilename
 		profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
-		"""
-		cls._do_select(renderer, position, session.world, settlement)
+		#cls._do_select(renderer, position, session.world, settlement)
 
 	@classmethod
 	def deselect_building(cls, session):
@@ -343,6 +341,7 @@ class SelectableBuilding(object):
 	@classmethod
 	@decorators.make_constants()
 	def _do_select(cls, renderer, position, world, settlement):
+		print 'selecting at ', position, 'radius', cls.radius
 		selected_tiles_add = cls._selected_tiles.append
 		add_colored = renderer.addColored
 		if cls.range_applies_only_on_island:
@@ -356,7 +355,8 @@ class SelectableBuilding(object):
 			else:
 				ground_holder = settlement
 
-			for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
+			#for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
+			def cb(tile):
 				try:
 					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
 						selected_tiles_add(tile)
@@ -365,6 +365,20 @@ class SelectableBuilding(object):
 						add_colored(tile.object._instance, *cls.selection_color)
 				except AttributeError:
 					pass # no tile or no object on tile
+			settlement.tilequadtree.visit_radius_tiles(position, cls.radius, cb)
+
+
+			"""
+			for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
+				try:
+					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+						selected_tiles_add(tile)
+						add_colored(tile._instance, *cls.selection_color)
+						# Add color to a building or tree that is present on the tile
+						add_colored(tile.object._instance, *cls.selection_color)
+				except AttributeError:
+					pass # no tile or no object on tile
+			"""
 		else:
 			# we have to color water too
 			for tile in world.get_tiles_in_radius(position.center(), cls.radius):

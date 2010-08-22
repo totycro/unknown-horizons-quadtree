@@ -32,7 +32,6 @@ from horizons.world.pathfinding.pathnodes import IslandPathNodes
 from horizons.constants import BUILDINGS, UNITS
 from horizons.campaign import CONDITIONS
 from horizons.world.providerhandler import ProviderHandler
-from horizons.util.tilequadtree import TileQuadTree
 
 class Island(WorldObject):
 	"""The Island class represents an Island by keeping a list of all instances on the map,
@@ -78,7 +77,7 @@ class Island(WorldObject):
 
 		# load settlements
 		for (settlement_id,) in db("SELECT rowid FROM settlement WHERE island = ?", islandid):
-			Settlement.load(db, settlement_id, self.session)
+			Settlement.load(db, settlement_id, self.session, self)
 
 		# load buildings
 		from horizons.world import load_building
@@ -108,15 +107,12 @@ class Island(WorldObject):
 		# NOTE: it contains tiles, that are not on the island!
 		self.rect = Rect(Point(p_x, p_y), width, height)
 
-		self.tilequadtree = TileQuadTree(self.rect)
-
 		self.ground_map = {}
 		for (rel_x, rel_y, ground_id) in db("select x, y, ground_id from ground"): # Load grounds
 			ground = Entities.grounds[ground_id](self.session, self.origin.x + rel_x, self.origin.y + rel_y)
 			# These are important for pathfinding and building to check if the ground tile
 			# is blocked in any way.
 			self.ground_map[(ground.x, ground.y)] = ground
-			self.tilequadtree.add_tile(ground)
 
 		self.settlements = []
 		self.buildings = []
@@ -212,7 +208,7 @@ class Island(WorldObject):
 		@param position: Rect describing the position of the new branch office
 		@param radius: int radius of the area of influence.
 		@param player: int id of the player that owns the settlement"""
-		settlement = Settlement(self.session, player)
+		settlement = Settlement(self.session, player, self)
 		self.add_existing_settlement(position, radius, settlement)
 		# TODO: Move this to command, this message should not appear while loading
 		self.session.ingame_gui.message_widget.add(position.center().x, \
@@ -250,7 +246,7 @@ class Island(WorldObject):
 					continue
 				if tile.settlement is None:
 					tile.settlement = settlement
-					settlement.ground_map[coord] = tile
+					settlement.tilequadtree.add_tile(tile)
 					self.session.ingame_gui.minimap.update(coord)
 
 				building = tile.object

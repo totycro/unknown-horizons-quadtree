@@ -501,8 +501,8 @@ class SettlementBuildingToolLogic(object):
 		else: #default build on island
 			for settlement in session.world.settlements:
 				if settlement.owner == player:
-					island = session.world.get_island(Point(*settlement.ground_map.iterkeys().next()))
-					for tile in settlement.ground_map.itervalues():
+					island = settlement.island
+					for tile in settlement.tilequadtree:
 						if is_tile_buildable(session, tile, None, island, check_settlement=False):
 							building_tool._color_buildable_tile(tile)
 

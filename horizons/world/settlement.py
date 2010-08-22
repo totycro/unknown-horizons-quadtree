@@ -24,24 +24,28 @@ import horizons.main
 from storage import PositiveSizedSlotStorage
 from horizons.util import WorldObject, WeakList, NamedObject
 from tradepost import TradePost
+from horizons.util.tilequadtree import TileQuadTree
 
 class Settlement(TradePost, NamedObject):
 	"""The Settlement class describes a settlement and stores all the necessary information
 	like name, current inhabitants, lists of tiles and houses, etc belonging to the village."""
-	def __init__(self, session, owner):
+	def __init__(self, session, owner, island):
 		"""
 		@param owner: Player object that owns the settlement
+		@param island: Island that contains the settlement
 		"""
-		self.__init(session, owner)
+		self.__init(session, owner, island)
 		super(Settlement, self).__init__()
 
-	def __init(self, session, owner, tax_setting=1.0):
+	def __init(self, session, owner, island, tax_setting=1.0):
 		self.session = session
 		self.owner = owner
 		self.tax_setting = tax_setting
 		self.buildings = []
 		self.setup_storage()
 		self.ground_map = {} # this is the same as in island.py. it uses hard references to the tiles too
+		self.island = island
+		self.tilequadtree = TileQuadTree(island.rect)
 
 	def set_tax_setting(self, tax):
 		self.tax_setting = tax
@@ -90,11 +94,11 @@ class Settlement(TradePost, NamedObject):
 		self.inventory.save(db, self.worldid)
 
 	@classmethod
-	def load(cls, db, worldid, session):
+	def load(cls, db, worldid, session, island):
 		self = cls.__new__(cls)
 
 		owner, tax = db("SELECT owner, tax_setting FROM settlement WHERE rowid = ?", worldid)[0]
-		self.__init(session, WorldObject.get_object_by_id(owner), tax)
+		self.__init(session, WorldObject.get_object_by_id(owner), island, tax)
 
 		# load super here cause basic stuff is just set up now
 		super(Settlement, self).load(db, worldid)
@@ -113,14 +117,16 @@ class Settlement(TradePost, NamedObject):
 
 		return self
 
+	"""
 	def get_tiles_in_radius(self, location, radius, include_self):
-		"""Returns tiles in radius of location.
+		""Returns tiles in radius of location.
 		This is a generator.
 		@param location: anything that supports get_radius_coordinates (usually Rect).
 		@param include_self: bool, whether to include the coordinates in location
-		"""
+		""
 		for coord in location.get_radius_coordinates(radius, include_self):
 			try:
 				yield self.ground_map[coord]
 			except KeyError:
 				pass
+	"""
