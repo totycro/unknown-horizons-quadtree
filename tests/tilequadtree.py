@@ -86,13 +86,33 @@ class TestTileQuadTree(unittest.TestCase):
 		self.assertEqual(len(coords), 0)
 
 	def testRadiusCoords(self):
-		tree = self._createTree()
-		for coord in self.default_rect.tuple_iter():
+		area = Rect.init_from_topleft_and_size(0, 0, 100, 100)
+		tree = TileQuadTree(area)
+		for coord in area.tuple_iter():
 			tree.add_tile( _FakeTile(coord[0], coord[1] ) )
-		rect = Rect.init_from_topleft_and_size(1, 1, 0, 0)
 
-		for i in tree.get_radius_tiles(rect, 1):
-			print i
+		center = Rect.init_from_topleft_and_size(20, 20, 0, 0)
+
+		def get_diff_msg(l1, l2):
+			msg = 'unequal at radius '+ str(radius)
+			msg += '\nl1: ' + str(l1)
+			msg += '\nl2: ' + str(l2)
+			diff1 = [ i for i in l1 if i not in l2 ]
+			diff2 = [ i for i in l2 if i not in l1 ]
+			msg += '\ndiff1: ' + str(diff1)
+			msg += '\ndiff2: ' + str(diff2)
+			return msg
+		for radius in xrange(0,15):
+			l1 = []
+			for tile in tree.get_radius_tiles(center, radius):
+				l1.append((tile.x, tile.y))
+			l2 = []
+			tree.visit_radius_tiles(center, radius, lambda x : l2.append((x.x, x.y)))
+			l1.sort()
+			l2.sort()
+			l3 = sorted(center.get_radius_coordinates(radius, include_self=True))
+			self.assertEqual(l1, l3, get_diff_msg(l1, l3))
+			self.assertEqual(l1, l2, get_diff_msg(l1, l2))
 
 	def testRadiusCoordsSpeed(self):
 		tree = TileQuadTree(Rect.init_from_topleft_and_size(0, 0, 300, 300) )
@@ -109,7 +129,7 @@ class TestTileQuadTree(unittest.TestCase):
 		a_app = a.append
 		import cProfile as profile
 		import tempfile
-		outfilename = tempfile.mkstemp(text = True)[1]
+		#outfilename = tempfile.mkstemp(text = True)[1]
 		#print 'profile to ', outfilename
 		#profile.runctx( "for i in tree.get_radius_tiles(center, 100): a_app(i)" , globals(), locals(), outfilename)
 		b = []
@@ -117,7 +137,7 @@ class TestTileQuadTree(unittest.TestCase):
 		def cb(x): pass
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print 'profile to ', outfilename
-		profile.runctx( "tree.visit_radius_tiles(center, 100, cb)" , globals(), locals(), outfilename)
+		profile.runctx( "tree.visit_radius_tiles(center, 120, cb)" , globals(), locals(), outfilename)
 
 		print len(a)
 		print len(b)

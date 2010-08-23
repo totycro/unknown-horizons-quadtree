@@ -63,6 +63,11 @@ class _Node(object):
 		if self.width_of_children == 0:
 			self.data = None
 
+		self.left = self.x - width_of_children
+		self.right = self.x + width_of_children
+		self.top = self.y - width_of_children
+		self.bottom = self.y + width_of_children
+
 	def create_child(self, quadrant):
 		"""
 		@param quadrant: integer quadrant id
@@ -107,6 +112,14 @@ class _Node(object):
 					for data in child.iterdata():
 						yield data
 
+	def visit_tiles(self, callback):
+		"""Calls callback on all tiles referenced by this node recursively"""
+		if self.width_of_children == 0: # leaf
+			callback(self.data)
+		else:
+			for child in self.children:
+				if child is not None:
+					child.visit_tiles(callback)
 
 	def get_radius_tiles(self, radius_rect):
 		if self.width_of_children == 0:
@@ -156,49 +169,70 @@ class _Node(object):
 		if self.width_of_children == 0:
 			#print 'checking ', (self.x, self.y)
 
+			# this if is an inline version of:
+			#if radius_rect.center.distance_to_tuple((self.x, self.y)) <= radius_rect.radius
 			r = radius_rect.center
 			if ((max(r.left - self.x, 0, self.x - r.right) ** 2) + (max(r.top - self.y, 0, self.y - r.bottom) ** 2)) ** 0.5 <= radius_rect.radius:
-				#if radius_rect.center.distance_to_tuple((self.x, self.y)) <= radius_rect.radius:
 				#print 'found ', (self.x, self.y)
 				callback(self.data)
 		else:
-			left = right = False
+			quadrants_to_search = None
+			#left = right = False
 			if radius_rect.left_radius_border < self.x: # search left side for sure
 				if radius_rect.right_radius_border < self.x:
-					left = True
+					#left = True
+					quadrants_to_search = set((0,2))
 				else:
-					left = right = True
+					#left = right = True
+					quadrants_to_search = set((0,1,2,3))
 			else:
-				right = True
+				#right = True
+				quadrants_to_search = set((1,3))
 
-			bottom = top = False
+			#bottom = top = False
 			if radius_rect.top_radius_border < self.y: # search top for sure
 				if radius_rect.bottom_radius_border < self.y:
-					top = True
-				else:
-					bottom = top = True
+					#top = True
+					quadrants_to_search.discard(2)
+					quadrants_to_search.discard(3)
+				#else:
+					#bottom = top = True
 			else:
-				bottom = True
+				#bottom = True
+				quadrants_to_search.discard(0)
+				quadrants_to_search.discard(1)
 
-			if left:
-				if top:
-					if self.children[0] is not None:
-						self.children[0].visit_radius_tiles(radius_rect, callback)
-				if bottom:
-					if self.children[2] is not None:
-						self.children[2].visit_radius_tiles(radius_rect, callback)
-			if right:
-				if top:
-					if self.children[1] is not None:
-						self.children[1].visit_radius_tiles(radius_rect, callback)
-				if bottom:
-					if self.children[3] is not None:
-						self.children[3].visit_radius_tiles(radius_rect, callback)
+			for quadrant in quadrants_to_search:
+				child = self.children[quadrant]
+				if child is not None:
+					full_child_included = False
+					# only check if full child is included if children are smaller than the radius
+					if self.width_of_children < radius_rect.radius:
+						# search corner of child farthest away from the radius_rect
+						center = radius_rect.center
+						center_point = ((center.right + center.left) // 2, \
+							              (center.bottom + center.top) // 2)
 
+						diff_left = abs(child.left - center_point[0])
+						diff_right = abs(child.right - center_point[1])
+						farthest_x = child.left if diff_left > diff_right else child.right
 
-	@property
-	def empty(self):
-		return self.children == [None] * 4
+						diff_top = abs(child.top - center_point[1])
+						diff_bottom = abs(child.bottom - center_point[1])
+						farthest_y = child.top if diff_top > diff_bottom else child.bottom
+
+						# this if is an inline version of:
+						#if radius_rect.center.distance_to_tuple((farthest_x, farthest_y)) < radius_rect.radius:
+						r = radius_rect.center
+						if ((max(r.left - farthest_x, 0, farthest_x - r.right) ** 2) + (max(r.top - farthest_y, 0, farthest_y - r.bottom) ** 2)) ** 0.5 <= radius_rect.radius:
+							full_child_included = True
+					if full_child_included:
+						# full rect is included
+						child.visit_tiles(callback)
+					else:
+						# go on checking on lower level
+						child.visit_radius_tiles(radius_rect, callback)
+
 
 	def __str__(self):
 		return "TileQuadTreeNode(x=%s, y=%s, child_w=%s)" % (self.x, self.y, self.width_of_children)
