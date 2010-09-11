@@ -117,16 +117,14 @@ class Settlement(TradePost, NamedObject):
 
 		return self
 
-	"""
 	def get_tiles_in_radius(self, location, radius, include_self):
-		""Returns tiles in radius of location.
+		"""Returns tiles in radius of location.
 		This is a generator.
 		@param location: anything that supports get_radius_coordinates (usually Rect).
 		@param include_self: bool, whether to include the coordinates in location
-		""
+		"""
 		for coord in location.get_radius_coordinates(radius, include_self):
 			try:
 				yield self.ground_map[coord]
 			except KeyError:
 				pass
-	"""

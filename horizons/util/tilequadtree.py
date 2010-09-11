@@ -25,6 +25,7 @@ class _RadiusRect(object):
 	def __init__(self, center, radius):
 		self.center = center
 		self.radius = radius
+		self.radius_squared = radius ** 2
 		self.left_radius_border = center.left - radius
 		self.right_radius_border = center.right + radius
 		self.top_radius_border = center.top - radius
@@ -49,11 +50,10 @@ class _Node(object):
 	  2 : (-1,  0),
 	  3 : ( 0,  0)
 	 }
-	# TODO:
-	# color
-	# settlement..
-	def __init__(self, x, y, width_of_children):
+
+	def __init__(self, parent, x, y, width_of_children):
 		# width_of_children == 0 => it's a leaf
+		self.parent = parent
 		self.x = x
 		self.y = y
 		assert width_of_children >= 0
@@ -62,6 +62,8 @@ class _Node(object):
 		#print 'create child at ', (self.x, self.y), ' with w ', self.width_of_children
 		if self.width_of_children == 0:
 			self.data = None
+		elif self.width_of_children <= 4:
+			self.child_data = []
 
 		self.left = self.x - width_of_children
 		self.right = self.x + width_of_children
@@ -76,7 +78,8 @@ class _Node(object):
 			direction = self.quadrant_directions[quadrant]
 			child_width_of_children = self.width_of_children // 2
 			self.children[quadrant] = \
-			    _Node(self.x + direction[0] * child_width_of_children,
+			    _Node(self,
+			          self.x + direction[0] * child_width_of_children,
 			          self.y + direction[1] * child_width_of_children,
 			          child_width_of_children)
 		else:
@@ -84,7 +87,7 @@ class _Node(object):
 			# the final coord of the last tile has to be corrected here
 			direction = self.leaf_quadrant_directions[quadrant]
 			self.children[quadrant] = \
-			    _Node(self.x + direction[0], self.y + direction[1], 0)
+			    _Node(self, self.x + direction[0], self.y + direction[1], 0)
 
 	def get_child_quadrant(self, x, y):
 		"""Returns id of quadrant, where an object at x, y can be found"""
@@ -117,9 +120,13 @@ class _Node(object):
 		if self.width_of_children == 0: # leaf
 			callback(self.data)
 		else:
-			for child in self.children:
-				if child is not None:
-					child.visit_tiles(callback)
+			if self.width_of_children <= 4:
+				for data in self.child_data:
+					callback(data)
+			else:
+				for child in self.children:
+					if child is not None:
+						child.visit_tiles(callback)
 
 	def get_radius_tiles(self, radius_rect):
 		if self.width_of_children == 0:
@@ -166,17 +173,28 @@ class _Node(object):
 							yield tile
 
 	def visit_radius_tiles(self, radius_rect, callback):
-		if self.width_of_children == 0:
+		if self.width_of_children == 1:
 			#print 'checking ', (self.x, self.y)
 
-			# this if is an inline version of:
-			#if radius_rect.center.distance_to_tuple((self.x, self.y)) <= radius_rect.radius
-			r = radius_rect.center
-			if ((max(r.left - self.x, 0, self.x - r.right) ** 2) + (max(r.top - self.y, 0, self.y - r.bottom) ** 2)) ** 0.5 <= radius_rect.radius:
-				#print 'found ', (self.x, self.y)
-				callback(self.data)
+			# finish checking here, not at acctual leaf level,
+			# because checking if full child is contained in the radius
+			# doesn't make sense here anymore
+
+			center = radius_rect.center
+			for child in self.children:
+				if child is not None:
+					# this if is an inline version of:
+					#if radius_rect.center.distance_to_tuple((child.x, child.y)) <= radius_rect.radius
+					if (max(center.left - child.x, 0, child.x - center.right) ** 2) + \
+					   (max(center.top - child.y, 0, child.y - center.bottom) ** 2) <= \
+					   radius_rect.radius_squared:
+						#print 'found ', (self.x, self.y)
+						callback(child.data)
 		else:
 			quadrants_to_search = None
+			# we need 2 comparisions for x- and y-axis each, since
+			# we are comparing 2 lines (rect boundaries w.r.t. x- and y-axis) to the axis
+
 			#left = right = False
 			if radius_rect.left_radius_border < self.x: # search left side for sure
 				if radius_rect.right_radius_border < self.x:
@@ -223,9 +241,11 @@ class _Node(object):
 
 						# this if is an inline version of:
 						#if radius_rect.center.distance_to_tuple((farthest_x, farthest_y)) < radius_rect.radius:
-						r = radius_rect.center
-						if ((max(r.left - farthest_x, 0, farthest_x - r.right) ** 2) + (max(r.top - farthest_y, 0, farthest_y - r.bottom) ** 2)) ** 0.5 <= radius_rect.radius:
+						if (max(center.left - farthest_x, 0, farthest_x - center.right) ** 2) + \
+						   (max(center.top - farthest_y, 0, farthest_y - center.bottom) ** 2) <= \
+						   radius_rect.radius_squared:
 							full_child_included = True
+
 					if full_child_included:
 						# full rect is included
 						child.visit_tiles(callback)
@@ -251,7 +271,7 @@ class TileQuadTree(object):
 		width_of_children = self.get_next_power_of_two(half_max_length)
 
 		coords = self._island_dimensions.center().x, self._island_dimensions.center().y
-		self.root = _Node(coords[0], coords[1], width_of_children)
+		self.root = _Node(None, coords[0], coords[1], width_of_children)
 
 		self._len = 0
 
@@ -270,6 +290,11 @@ class TileQuadTree(object):
 					raise self.OverwriteError()
 				cur.data = tile
 				self._len += 1
+
+				cur = cur.parent
+				while hasattr(cur, "child_data"):
+					cur.child_data.append(tile)
+					cur = cur.parent
 				break
 
 			# find quadrant, where child is located

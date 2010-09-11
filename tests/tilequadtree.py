@@ -119,25 +119,19 @@ class TestTileQuadTree(unittest.TestCase):
 
 		print 'testing speed (may take a while)'
 		for x in xrange(0,300):
-			print x
+			if x % 20 == 0: print int((float(x)/300)*100)
 			for y in xrange(0,300):
 				tree.add_tile(_FakeTile(x, y) )
 
 		center = Rect.init_from_topleft_and_size(144,145,10,10)
 
-		a = []
-		a_app = a.append
 		import cProfile as profile
 		import tempfile
 		#outfilename = tempfile.mkstemp(text = True)[1]
 		#print 'profile to ', outfilename
 		#profile.runctx( "for i in tree.get_radius_tiles(center, 100): a_app(i)" , globals(), locals(), outfilename)
-		b = []
-		b_app = b.append
 		def cb(x): pass
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print 'profile to ', outfilename
 		profile.runctx( "tree.visit_radius_tiles(center, 120, cb)" , globals(), locals(), outfilename)
 
-		print len(a)
-		print len(b)

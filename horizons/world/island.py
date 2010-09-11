@@ -248,6 +248,8 @@ class Island(WorldObject):
 					tile.settlement = settlement
 					settlement.tilequadtree.add_tile(tile)
 					self.session.ingame_gui.minimap.update(coord)
+					settlement.ground_map[coord] = tile
+
 
 				building = tile.object
 				# assign buildings on tiles to settlement

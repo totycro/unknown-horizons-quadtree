@@ -355,7 +355,21 @@ class SelectableBuilding(object):
 			else:
 				ground_holder = settlement
 
-			#for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
+			# old version:
+			"""
+			for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
+				try:
+					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+						selected_tiles_add(tile)
+						add_colored(tile._instance, *cls.selection_color)
+						# Add color to a building or tree that is present on the tile
+						add_colored(tile.object._instance, *cls.selection_color)
+				except AttributeError:
+					pass # no tile or no object on tile
+			"""
+
+
+			# version with callback
 			def cb(tile):
 				try:
 					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
@@ -369,6 +383,7 @@ class SelectableBuilding(object):
 
 
 			"""
+			# version with iteration
 			for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
 				try:
 					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
