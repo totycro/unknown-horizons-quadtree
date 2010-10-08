@@ -296,7 +296,13 @@ class SelectableBuilding(object):
 		renderer = self.session.view.renderer['InstanceRenderer']
 		renderer.addOutlined(self._instance, self.selection_color[0], self.selection_color[1], \
 								         self.selection_color[2], 1)
-		self._do_select(renderer, self.position, self.session.world, self.settlement)
+		self.__class__._selected_tiles = [] # TODO: this should be already empty here
+		import cProfile as profile
+		import tempfile
+		outfilename = tempfile.mkstemp(text = True)[1]
+		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
+		print 'profile to ', outfilename
+		profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
 
 	def deselect(self):
 		"""Runs neccassary steps to deselect the building."""
@@ -318,9 +324,11 @@ class SelectableBuilding(object):
 		@param settlement: Settlement instance the building belongs to"""
 		renderer = session.view.renderer['InstanceRenderer']
 
+		cls._selected_tiles = [] # TODO: this should be already empty here
 		import cProfile as profile
 		import tempfile
 		outfilename = tempfile.mkstemp(text = True)[1]
+		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
 		print 'profile to ', outfilename
 		profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
 		#cls._do_select(renderer, position, session.world, settlement)
@@ -341,7 +349,7 @@ class SelectableBuilding(object):
 	@classmethod
 	@decorators.make_constants()
 	def _do_select(cls, renderer, position, world, settlement):
-		print 'selecting at ', position, 'radius', cls.radius
+		#print 'selecting at ', position, 'radius', cls.radius
 		selected_tiles_add = cls._selected_tiles.append
 		add_colored = renderer.addColored
 		if cls.range_applies_only_on_island:
@@ -355,45 +363,68 @@ class SelectableBuilding(object):
 			else:
 				ground_holder = settlement
 
-			# old version:
-			"""
-			for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
-				try:
-					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
-						selected_tiles_add(tile)
-						add_colored(tile._instance, *cls.selection_color)
-						# Add color to a building or tree that is present on the tile
-						add_colored(tile.object._instance, *cls.selection_color)
-				except AttributeError:
-					pass # no tile or no object on tile
-			"""
-
+			selection_type = "cb3" # old | cb | cb2 | cb3 | iter | iter3
+			if selection_type == "old":
+				for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
+					try:
+						if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+							selected_tiles_add(tile)
+							add_colored(tile._instance, *cls.selection_color)
+							# Add color to a building or tree that is present on the tile
+							add_colored(tile.object._instance, *cls.selection_color)
+					except AttributeError:
+						pass # no tile or no object on tile
 
 			# version with callback
-			def cb(tile):
-				try:
-					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+			if selection_type == "cb":
+				def cb(tile):
+					try:
 						selected_tiles_add(tile)
 						add_colored(tile._instance, *cls.selection_color)
 						# Add color to a building or tree that is present on the tile
 						add_colored(tile.object._instance, *cls.selection_color)
-				except AttributeError:
-					pass # no tile or no object on tile
-			settlement.tilequadtree.visit_radius_tiles(position, cls.radius, cb)
+					except AttributeError:
+						pass # no tile or no object on tile
+				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, cb)
 
+			if selection_type == "cb2":
+				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
+				for tile in cls._selected_tiles:
+					try:
+						add_colored(tile._instance, *cls.selection_color)
+						# Add color to a building or tree that is present on the tile
+						add_colored(tile.object._instance, *cls.selection_color)
+					except AttributeError:
+						pass # no tile or no object on tile
 
-			"""
-			# version with iteration
-			for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
-				try:
-					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+			if selection_type == "cb3":
+				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
+				for tile in cls._selected_tiles:
+					add_colored(tile._instance, *cls.selection_color)
+					# Add color to a building or tree that is present on the tile
+					if tile.object is not None:
+						add_colored(tile.object._instance, *cls.selection_color)
+
+			if selection_type == "iter":
+				# version with iteration
+				for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
+					try:
 						selected_tiles_add(tile)
 						add_colored(tile._instance, *cls.selection_color)
 						# Add color to a building or tree that is present on the tile
 						add_colored(tile.object._instance, *cls.selection_color)
-				except AttributeError:
-					pass # no tile or no object on tile
-			"""
+					except AttributeError:
+						pass # no tile or no object on tile
+
+			if selection_type == "iter3":
+				# version with iteration
+				for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
+					selected_tiles_add(tile)
+					add_colored(tile._instance, *cls.selection_color)
+					# Add color to a building or tree that is present on the tile
+					if tile.object is not None:
+						add_colored(tile.object._instance, *cls.selection_color)
+
 		else:
 			# we have to color water too
 			for tile in world.get_tiles_in_radius(position.center(), cls.radius):

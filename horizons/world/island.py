@@ -246,9 +246,11 @@ class Island(WorldObject):
 					continue
 				if tile.settlement is None:
 					tile.settlement = settlement
-					settlement.tilequadtree.add_tile(tile)
 					self.session.ingame_gui.minimap.update(coord)
 					settlement.ground_map[coord] = tile
+					# only add tiles used for coloring ranges
+					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+						settlement.tilequadtree.add_tile(tile)
 
 
 				building = tile.object

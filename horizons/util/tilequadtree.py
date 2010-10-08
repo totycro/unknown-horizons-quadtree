@@ -25,6 +25,7 @@ class _RadiusRect(object):
 	def __init__(self, center, radius):
 		self.center = center
 		self.radius = radius
+		# eager evaluation, pulled out of loops
 		self.radius_squared = radius ** 2
 		self.left_radius_border = center.left - radius
 		self.right_radius_border = center.right + radius
@@ -62,9 +63,11 @@ class _Node(object):
 		#print 'create child at ', (self.x, self.y), ' with w ', self.width_of_children
 		if self.width_of_children == 0:
 			self.data = None
-		elif self.width_of_children <= 4:
+		elif self.width_of_children <= 2**3:
+			# keep list of data that is stored in all children for smaller nodes
 			self.child_data = []
 
+		# eager evaluation
 		self.left = self.x - width_of_children
 		self.right = self.x + width_of_children
 		self.top = self.y - width_of_children
@@ -120,15 +123,18 @@ class _Node(object):
 		if self.width_of_children == 0: # leaf
 			callback(self.data)
 		else:
-			if self.width_of_children <= 4:
+			try:
 				for data in self.child_data:
 					callback(data)
-			else:
+			except AttributeError:  # visit_tiles is usually only used for smaller nodes, so this is unlikely
 				for child in self.children:
 					if child is not None:
 						child.visit_tiles(callback)
 
 	def get_radius_tiles(self, radius_rect):
+		"""TODO: unsused and outdate.
+		Consider using visit_radius_tiles if you don't need to have a list,
+		since passing the results through the whole tree is expensive"""
 		if self.width_of_children == 0:
 			#print 'checking ', (self.x, self.y)
 			if radius_rect.center.distance_to_tuple((self.x, self.y)) <= radius_rect.radius:
@@ -195,28 +201,19 @@ class _Node(object):
 			# we need 2 comparisions for x- and y-axis each, since
 			# we are comparing 2 lines (rect boundaries w.r.t. x- and y-axis) to the axis
 
-			#left = right = False
 			if radius_rect.left_radius_border < self.x: # search left side for sure
 				if radius_rect.right_radius_border < self.x:
-					#left = True
 					quadrants_to_search = set((0,2))
 				else:
-					#left = right = True
 					quadrants_to_search = set((0,1,2,3))
 			else:
-				#right = True
 				quadrants_to_search = set((1,3))
 
-			#bottom = top = False
 			if radius_rect.top_radius_border < self.y: # search top for sure
 				if radius_rect.bottom_radius_border < self.y:
-					#top = True
 					quadrants_to_search.discard(2)
 					quadrants_to_search.discard(3)
-				#else:
-					#bottom = top = True
 			else:
-				#bottom = True
 				quadrants_to_search.discard(0)
 				quadrants_to_search.discard(1)
 
@@ -267,15 +264,19 @@ class TileQuadTree(object):
 		@param island_dimensions: a Rect specifiying the boundaries of the island
 		"""
 		self._island_dimensions = island_dimensions.copy()
+		# we need to calculate the size of our children here.
+		# the root will be located at the center, leaving a certain maximal distance
+		# to the coordinate farthest away. The minimal power of two, which is >= to this
+		# distance, will be the width_of_children of the root node
 		half_max_length = max(self._island_dimensions.width, self._island_dimensions.height) // 2
 		width_of_children = self.get_next_power_of_two(half_max_length)
-
-		coords = self._island_dimensions.center().x, self._island_dimensions.center().y
+		coords = (self._island_dimensions.center().x, self._island_dimensions.center().y)
 		self.root = _Node(None, coords[0], coords[1], width_of_children)
 
-		self._len = 0
+		self._len = 0 # number of children
 
 	def add_tile(self, tile):
+		"""Adds a tile to the tree. A coordinate may only be occupied by one tile."""
 		assert self._island_dimensions.contains_tuple((tile.x, tile.y))
 
 		cur = self.root
@@ -291,6 +292,7 @@ class TileQuadTree(object):
 				cur.data = tile
 				self._len += 1
 
+				# add data to data list of parents
 				cur = cur.parent
 				while hasattr(cur, "child_data"):
 					cur.child_data.append(tile)
@@ -326,14 +328,17 @@ class TileQuadTree(object):
 				return None
 
 	def get_radius_tiles(self, center, radius):
-		"""Yields tiles in the radius of center.
+		"""Returns all tiles in radius. Use this if you need to have a list of Tiles
 		@param center: Rect
 		@param radius: int
+		@return: list of Tile objects
 		"""
-		for tile in self.root.get_radius_tiles(_RadiusRect(center, radius)):
-			yield tile
+		l = []
+		self.root.visit_radius_tiles(_RadiusRect(center, radius), l.append)
+		return l
 
 	def visit_radius_tiles(self, center, radius, callback):
+		"""Calls a function on each tile within the radius. Has less overhead than get_radius_tiles."""
 		self.root.visit_radius_tiles(_RadiusRect(center, radius), callback)
 
 	def __iter__(self):
