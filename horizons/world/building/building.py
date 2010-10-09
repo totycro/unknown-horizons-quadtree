@@ -297,12 +297,15 @@ class SelectableBuilding(object):
 		renderer.addOutlined(self._instance, self.selection_color[0], self.selection_color[1], \
 								         self.selection_color[2], 1)
 		self.__class__._selected_tiles = [] # TODO: this should be already empty here
+		"""
 		import cProfile as profile
 		import tempfile
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
 		print 'profile to ', outfilename
 		profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
+		"""
+		self._do_select(renderer, self.position, self.session.world, self.settlement)
 
 	def deselect(self):
 		"""Runs neccassary steps to deselect the building."""
@@ -325,13 +328,15 @@ class SelectableBuilding(object):
 		renderer = session.view.renderer['InstanceRenderer']
 
 		cls._selected_tiles = [] # TODO: this should be already empty here
+		"""
 		import cProfile as profile
 		import tempfile
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
 		print 'profile to ', outfilename
 		profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
-		#cls._do_select(renderer, position, session.world, settlement)
+		"""
+		cls._do_select(renderer, position, session.world, settlement)
 
 	@classmethod
 	def deselect_building(cls, session):
@@ -399,10 +404,25 @@ class SelectableBuilding(object):
 
 			if selection_type == "cb3":
 				outer_part = set(i for i in position.get_radius_border_coordinates(cls.radius))
+				#print 'list len: ', len(list(i for i in position.get_radius_border_coordinates(cls.radius)))
+				print 'set len: ', len(outer_part)
+
+
+
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
+				"""
 				for tile in cls._selected_tiles:
-					#if (tile.x, tile.y) in outer_part:
-						#continue
+					if (tile.x, tile.y) in outer_part:
+						continue
+					add_colored(tile._instance, *cls.selection_color)
+					# Add color to a building or tree that is present on the tile
+					if tile.object is not None:
+						add_colored(tile.object._instance, *cls.selection_color)
+				"""
+				for coord in outer_part:
+					if coord not in ground_holder.ground_map:
+						continue
+					tile = ground_holder.ground_map[coord]
 					add_colored(tile._instance, *cls.selection_color)
 					# Add color to a building or tree that is present on the tile
 					if tile.object is not None:

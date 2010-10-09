@@ -148,6 +148,7 @@ class Rect(object):
 		borders = []
 		# use the same algorithm as in get_radius_coordinates
 		# upper and lower part
+		#"""
 		for x in xrange( self.left, self.right+1 ):
 			yield (x, self.top - radius)
 			yield (x, self.bottom + radius)
@@ -155,17 +156,52 @@ class Rect(object):
 		for y in xrange( self.top, self.bottom+1 ):
 			yield (self.left - radius, y)
 			yield (self.right + radius, y)
+		#"""
 
 		x = radius
 		radius_squared = radius ** 2
 		for y in xrange(1, radius):
 			test_val = radius_squared - y ** 2
+			"""
+			if (x+1) ** 2 > test_val:
+				print 'check passed'
+				yield (self.left - x+1, self.top - y)
+				yield (self.right + x-1, self.top - y)
+				yield (self.left - x+1, self.bottom + y)
+				yield (self.right + x-1, self.bottom + y)
+			"""
+			print 'step ', y
 			while (x ** 2) > test_val:
+				"""
+				yield (self.left - x+1, self.top - y)
+				yield (self.right + x-1, self.top - y)
+				yield (self.left - x+1, self.bottom + y)
+				yield (self.right + x-1, self.bottom + y)
+				""
+				yield (self.left - x, self.top - y)
+				yield (self.right + x, self.top - y)
+				yield (self.left - x, self.bottom + y)
+				yield (self.right + x, self.bottom + y)
+				"""
 				x -= 1
+				print 'while loop, new x:', x
+
+				yield (self.left - x, self.top - y)
+				yield (self.right + x, self.top - y)
+				yield (self.left - x, self.bottom + y)
+				yield (self.right + x, self.bottom + y)
+
 			yield (self.left - x, self.top - y)
 			yield (self.right + x, self.top - y)
 			yield (self.left - x, self.bottom + y)
 			yield (self.right + x, self.bottom + y)
+
+		while x > 0:
+			yield (self.left - x, self.top - radius+1)
+			yield (self.right + x, self.top - radius+1)
+			yield (self.left - x, self.bottom + radius-1)
+			yield (self.right + x, self.bottom + radius-1)
+			x -= 1
 
 
 	@make_constants()
