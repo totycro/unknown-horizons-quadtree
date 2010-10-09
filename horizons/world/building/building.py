@@ -404,7 +404,7 @@ class SelectableBuilding(object):
 
 			if selection_type == "cb3":
 				outer_part = set(i for i in position.get_radius_border_coordinates(cls.radius))
-				#print 'list len: ', len(list(i for i in position.get_radius_border_coordinates(cls.radius)))
+				print 'list len: ', len(list(i for i in position.get_radius_border_coordinates(cls.radius)))
 				print 'set len: ', len(outer_part)
 
 
