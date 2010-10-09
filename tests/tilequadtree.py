@@ -88,10 +88,12 @@ class TestTileQuadTree(unittest.TestCase):
 	def testRadiusCoords(self):
 		area = Rect.init_from_topleft_and_size(0, 0, 100, 100)
 		tree = TileQuadTree(area)
+		tree2 = TileQuadTree(area)
+		tree2_check = lambda coord : coord[0] % 2 == 0 and coord[0] % 3 == 0 and coord[1] % 5 == 0
 		for coord in area.tuple_iter():
 			tree.add_tile( _FakeTile(coord[0], coord[1] ) )
-
-		center = Rect.init_from_topleft_and_size(20, 20, 0, 0)
+			if tree2_check(coord):
+				tree2.add_tile( _FakeTile(coord[0], coord[1]) )
 
 		def get_diff_msg(l1, l2):
 			msg = 'unequal at radius '+ str(radius)
@@ -102,7 +104,7 @@ class TestTileQuadTree(unittest.TestCase):
 			msg += '\ndiff1: ' + str(diff1)
 			msg += '\ndiff2: ' + str(diff2)
 			return msg
-		for radius in xrange(0,15):
+		def do_test(center, radius):
 			l1 = []
 			for tile in tree.get_radius_tiles(center, radius):
 				l1.append((tile.x, tile.y))
@@ -113,6 +115,33 @@ class TestTileQuadTree(unittest.TestCase):
 			l3 = sorted(center.get_radius_coordinates(radius, include_self=True))
 			self.assertEqual(l1, l3, get_diff_msg(l1, l3))
 			self.assertEqual(l1, l2, get_diff_msg(l1, l2))
+		def do_test2(center, radius):
+			l1 = []
+			for tile in tree2.get_radius_tiles(center, radius):
+				l1.append((tile.x, tile.y))
+			l2 = []
+			tree2.visit_radius_tiles(center, radius, lambda x : l2.append((x.x, x.y)))
+			l1.sort()
+			l2.sort()
+			l3 = [ x for x in sorted(center.get_radius_coordinates(radius, include_self=True)) if tree2_check(x)]
+			self.assertEqual(l1, l3, get_diff_msg(l1, l3))
+			self.assertEqual(l1, l2, get_diff_msg(l1, l2))
+
+
+		center = Rect.init_from_topleft_and_size(20, 20, 0, 0)
+		center2 = Rect.init_from_topleft_and_size(20, 20, 3, 3)
+		center3 = Rect.init_from_topleft_and_size(20, 20, 5, 2)
+
+		print 'checking for correctness'
+		for radius in xrange(0,15):
+			do_test(center, radius)
+			do_test(center2, radius)
+			do_test(center3, radius)
+			do_test2(center, radius)
+			do_test2(center2, radius)
+			do_test2(center3, radius)
+
+
 
 	def testRadiusCoordsSpeed(self):
 		tree = TileQuadTree(Rect.init_from_topleft_and_size(0, 0, 300, 300) )

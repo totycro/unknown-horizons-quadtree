@@ -229,12 +229,12 @@ class _Node(object):
 							              (center.bottom + center.top) // 2)
 
 						diff_left = abs(child.left - center_point[0])
-						diff_right = abs(child.right - center_point[1])
-						farthest_x = child.left if diff_left > diff_right else child.right
+						diff_right = abs(child.right - center_point[0])
+						farthest_x = child.left if diff_left >= diff_right else child.right
 
 						diff_top = abs(child.top - center_point[1])
 						diff_bottom = abs(child.bottom - center_point[1])
-						farthest_y = child.top if diff_top > diff_bottom else child.bottom
+						farthest_y = child.top if diff_top >= diff_bottom else child.bottom
 
 						# this if is an inline version of:
 						#if radius_rect.center.distance_to_tuple((farthest_x, farthest_y)) < radius_rect.radius:

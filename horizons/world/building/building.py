@@ -398,8 +398,11 @@ class SelectableBuilding(object):
 						pass # no tile or no object on tile
 
 			if selection_type == "cb3":
+				outer_part = set(i for i in position.get_radius_border_coordinates(cls.radius))
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
 				for tile in cls._selected_tiles:
+					#if (tile.x, tile.y) in outer_part:
+						#continue
 					add_colored(tile._instance, *cls.selection_color)
 					# Add color to a building or tree that is present on the tile
 					if tile.object is not None:

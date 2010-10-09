@@ -142,6 +142,32 @@ class Rect(object):
 		"""Returns list of all coordinates, that are in the Rect """
 		return [ (x, y) for x in xrange(self.left, self.right+1) for y in xrange(self.top, self.bottom+1) ]
 
+	def get_radius_border_coordinates(self, radius):
+		"""Returns a list of coordinates, whose distance to self is radius.
+		Implemented as generator."""
+		borders = []
+		# use the same algorithm as in get_radius_coordinates
+		# upper and lower part
+		for x in xrange( self.left, self.right+1 ):
+			yield (x, self.top - radius)
+			yield (x, self.bottom + radius)
+		# rightmost and leftmost part
+		for y in xrange( self.top, self.bottom+1 ):
+			yield (self.left - radius, y)
+			yield (self.right + radius, y)
+
+		x = radius
+		radius_squared = radius ** 2
+		for y in xrange(1, radius):
+			test_val = radius_squared - y ** 2
+			while (x ** 2) > test_val:
+				x -= 1
+			yield (self.left - x, self.top - y)
+			yield (self.right + x, self.top - y)
+			yield (self.left - x, self.bottom + y)
+			yield (self.right + x, self.bottom + y)
+
+
 	@make_constants()
 	def get_radius_coordinates(self, radius, include_self = False):
 		"""Returns list of all coordinates (as tuples), that are in the radius
