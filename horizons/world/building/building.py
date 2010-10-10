@@ -326,22 +326,37 @@ class SelectableBuilding(object):
 		@param position: Position of building, usually Rect
 		@param settlement: Settlement instance the building belongs to"""
 		renderer = session.view.renderer['InstanceRenderer']
+		print 'calling select_building, len of selected_tiles: ' , len(cls._selected_tiles)
 
-		cls._selected_tiles = [] # TODO: this should be already empty here
-		"""
 		import cProfile as profile
 		import tempfile
 		outfilename = tempfile.mkstemp(text = True)[1]
-		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
 		print 'profile to ', outfilename
-		profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
-		"""
-		cls._do_select(renderer, position, session.world, settlement)
+		# check if preview only moved a short distance (update instead of full redraw in this case)
+		if hasattr(cls, "old_position") and \
+		   abs(position.left - cls.old_position.left) <= 1 and \
+		   abs(position.top - cls.old_position.top) <= 1:
+			# position only changed at most one tile in both dimensions.
+			# remove "outer ring" and draw new ring
+			print 'doing update'
+			#cls._do_update_selection(renderer, position, cls.old_position, session.world, settlement)
+			profile.runctx( "cls._do_update_selection(renderer, position, cls.old_position, session.world, settlement)", globals(), locals(), outfilename)
+		else:
+			# recalculate and redraw full region
+			"""
+			"""
+			print 'full recalc & redraw'
+			cls.deselect_building(session)
+			#cls._do_select(renderer, position, session.world, settlement)
+			profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
+
+		cls.old_position = position
 
 	@classmethod
 	def deselect_building(cls, session):
 		"""@see select_building,
 		@return list of tiles that were deselected."""
+		print 'calling deselect_building, len of selected_tiles: ' , len(cls._selected_tiles)
 		remove_colored = session.view.renderer['InstanceRenderer'].removeColored
 		for tile in cls._selected_tiles:
 			remove_colored(tile._instance)
@@ -350,6 +365,50 @@ class SelectableBuilding(object):
 		selected_tiles = cls._selected_tiles
 		cls._selected_tiles = []
 		return selected_tiles
+
+	@classmethod
+	@decorators.make_constants()
+	def _do_update_selection(cls, renderer, position, old_position, world, settlement):
+		# NOTE: only workes if range applies only on island
+		# NOTE: only works if settlement is ground_holder
+		ground_holder = settlement
+		selected_tiles = set(cls._selected_tiles)
+		#import pdb ; pdb.set_trace()
+		def sign(x):
+			if x < 0 : return -1
+			elif x == 0: return 0
+			return 1
+		direction = ( sign(position.left - old_position.left),
+		              sign(position.top - old_position.top) )
+
+		# out with the old
+		remove_colored = renderer.removeColored
+		for coord_list in old_position.get_radius_border_coordinates(cls.radius).iteritems():
+			if coord_list[0][0] != -direction[0] and \
+			   coord_list[0][1] != -direction[1]:
+				continue # drop the coords, that are in the opposite direction of the movement
+			for coord in coord_list[1]:
+				tile = ground_holder.ground_map.get(coord)
+				if tile is not None:
+					selected_tiles.discard(tile)
+					remove_colored(tile._instance)
+					if tile.object is not None:
+						remove_colored(tile.object._instance)
+		# in with the new
+		add_colored = renderer.addColored
+		for coord_list in position.get_radius_border_coordinates(cls.radius).iteritems():
+			if False and coord_list[0][0] != direction[0] and \
+			   coord_list[0][1] != direction[1]:
+				continue
+			for coord in coord_list[1]:
+				tile = ground_holder.ground_map.get(coord)
+				if tile is not None:
+					selected_tiles.add(tile)
+					add_colored(tile._instance, *cls.selection_color)
+					if tile.object is not None:
+						add_colored(tile.object._instance, *cls.selection_color)
+
+		#cls._selected_tiles = list(selected_tiles)
 
 	@classmethod
 	@decorators.make_constants()
@@ -369,6 +428,7 @@ class SelectableBuilding(object):
 				ground_holder = settlement
 
 			selection_type = "cb3" # old | cb | cb2 | cb3 | iter | iter3
+
 			if selection_type == "old":
 				for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
 					try:
@@ -403,30 +463,25 @@ class SelectableBuilding(object):
 						pass # no tile or no object on tile
 
 			if selection_type == "cb3":
-				outer_part = set(i for i in position.get_radius_border_coordinates(cls.radius))
-				print 'list len: ', len(list(i for i in position.get_radius_border_coordinates(cls.radius)))
-				print 'set len: ', len(outer_part)
-
-
-
+				#"""
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
-				"""
 				for tile in cls._selected_tiles:
-					if (tile.x, tile.y) in outer_part:
-						continue
 					add_colored(tile._instance, *cls.selection_color)
 					# Add color to a building or tree that is present on the tile
 					if tile.object is not None:
 						add_colored(tile.object._instance, *cls.selection_color)
 				"""
-				for coord in outer_part:
+				outer_part = position.get_radius_border_coordinates(cls.radius)
+				for coord in outer_part[(-1, -1)] + outer_part[(1, 1)] + outer_part[(-1, 1)] + outer_part[(1, -1)]:
 					if coord not in ground_holder.ground_map:
 						continue
 					tile = ground_holder.ground_map[coord]
+					selected_tiles_add(tile)
 					add_colored(tile._instance, *cls.selection_color)
 					# Add color to a building or tree that is present on the tile
 					if tile.object is not None:
 						add_colored(tile.object._instance, *cls.selection_color)
+				#"""
 
 			if selection_type == "iter":
 				# version with iteration

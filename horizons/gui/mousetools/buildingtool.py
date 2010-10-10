@@ -82,7 +82,10 @@ class BuildingTool(NavigationTool):
 	def highlight_buildable(self, tiles_to_check = None):
 		"""Highlights all buildable tiles.
 		@param tiles_to_check: list of tiles to check for coloring."""
+		"""
+		BACTODO:
 		self._build_logic.highlight_buildable(self, tiles_to_check)
+		"""
 
 	@decorators.make_constants()
 	def _color_buildable_tile(self, tile):
@@ -413,10 +416,13 @@ class BuildingTool(NavigationTool):
 
 	def _remove_building_instances(self):
 		"""Deletes fife instances of buildings"""
+		"""
+		BACTODO:
 		if hasattr(self._class, "deselect_building"):
 			deselected_tiles = self._class.deselect_building(self.session)
 			# redraw buildables (removal of selection might have tampered with it)
 			self.highlight_buildable(deselected_tiles)
+		"""
 		for obj in self._modified_objects:
 			if obj.fife_instance is not None:
 				obj.fife_instance.get2dGfxVisual().setTransparency(0)

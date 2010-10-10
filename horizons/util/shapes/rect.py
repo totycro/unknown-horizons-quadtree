@@ -143,18 +143,33 @@ class Rect(object):
 		return [ (x, y) for x in xrange(self.left, self.right+1) for y in xrange(self.top, self.bottom+1) ]
 
 	def get_radius_border_coordinates(self, radius):
-		"""Returns a list of coordinates, whose distance to self is radius.
-		Implemented as generator.
+		"""Returns coordinates, whose distance to self is radius.
+		Return value format:
+		dict; key is a tuple ((-1|1), (-1|1)), indicating the direction from the center
+		of this value. The value is a list of coords, that make up the quarter of
+		the returned region.
+		NOTE: UH-style direction system is used, not the default in mathematics.
 		"""
+		retval = {(-1, -1) : [],
+		          (-1,  1) : [],
+		          ( 1, -1) : [],
+		          ( 1,  1) : []}
 		# use the same algorithm as in get_radius_coordinates
 		# upper and lower part
-		for x in xrange( self.left, self.right+1 ):
-			yield (x, self.top - radius)
-			yield (x, self.bottom + radius)
+		for x in xrange( self.left, (self.left+self.right)/2+1 ):
+			retval[(-1, -1)].append((x, self.top - radius))
+			retval[(-1,  1)].append((x, self.bottom + radius))
+		for x in xrange( (self.left+self.right)/2+1, self.right+1 ):
+			retval[(1, -1)].append((x, self.top - radius))
+			retval[(1,  1)].append((x, self.bottom + radius))
+
 		# rightmost and leftmost part
-		for y in xrange( self.top, self.bottom+1 ):
-			yield (self.left - radius, y)
-			yield (self.right + radius, y)
+		for y in xrange( self.top, (self.top+self.bottom)/2+1 ):
+			retval[(-1, -1)].append((self.left - radius, y))
+			retval[( 1, -1)].append((self.right + radius, y))
+		for y in xrange( (self.top+self.bottom)/2+1, self.bottom+1 ):
+			retval[(-1,  1)].append((self.left - radius, y))
+			retval[( 1,  1)].append((self.right + radius, y))
 
 		x = radius
 		radius_squared = radius ** 2
@@ -164,24 +179,25 @@ class Rect(object):
 			while (x ** 2) > test_val:
 				while_executed = True
 				x -= 1
-				yield (self.left - x, self.top - y)
-				yield (self.right + x, self.top - y)
-				yield (self.left - x, self.bottom + y)
-				yield (self.right + x, self.bottom + y)
+				retval[(-1, -1)].append((self.left - x, self.top - y))
+				retval[( 1, -1)].append((self.right + x, self.top - y))
+				retval[(-1,  1)].append((self.left - x, self.bottom + y))
+				retval[( 1,  1)].append((self.right + x, self.bottom + y))
 
 			if not while_executed:
-				yield (self.left - x, self.top - y)
-				yield (self.right + x, self.top - y)
-				yield (self.left - x, self.bottom + y)
-				yield (self.right + x, self.bottom + y)
+				retval[(-1, -1)].append((self.left - x, self.top - y))
+				retval[( 1, -1)].append((self.right + x, self.top - y))
+				retval[(-1,  1)].append((self.left - x, self.bottom + y))
+				retval[( 1,  1)].append((self.right + x, self.bottom + y))
 
 		while x > 1:
 			x -= 1
-			yield (self.left - x, self.top - radius+1)
-			yield (self.right + x, self.top - radius+1)
-			yield (self.left - x, self.bottom + radius-1)
-			yield (self.right + x, self.bottom + radius-1)
+			retval[(-1, -1)].append((self.left - x, self.top - radius+1))
+			retval[( 1, -1)].append((self.right + x, self.top - radius+1))
+			retval[(-1,  1)].append((self.left - x, self.bottom + radius-1))
+			retval[( 1,  1)].append((self.right + x, self.bottom + radius-1))
 
+		return retval
 
 	@make_constants()
 	def get_radius_coordinates(self, radius, include_self = False):
