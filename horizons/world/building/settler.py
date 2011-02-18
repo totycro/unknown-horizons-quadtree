@@ -193,6 +193,8 @@ class Settler(SelectableBuilding, BuildableSingle, CollectingProducerBuilding, B
 		self._changed()
 
 	def level_down(self):
+		# BACTODO:
+		return # disable leveling down for testing purposes
 		if self.level == 0: # can't level down any more
 			# remove when this function is done
 			Scheduler().add_new_object(self.remove, self, runin=0)

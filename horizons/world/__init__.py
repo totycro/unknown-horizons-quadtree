@@ -188,7 +188,9 @@ class World(LivingObject):
 		if self.session.is_game_loaded():
 			# let trader command it's ships. we have to do this here cause ships have to be
 			# initialised for this, and trader has to exist before ships are loaded.
-			self.trader.load_ship_states(savegame_db)
+			# BACTODO: disable trader
+			#self.trader.load_ship_states(savegame_db)
+			pass
 
 		self.inited = True
 		"""TUTORIAL:

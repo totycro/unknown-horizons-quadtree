@@ -192,12 +192,11 @@ class _Node(object):
 					# this if is an inline version of:
 					#if radius_rect.center.distance_to_tuple((child.x, child.y)) <= radius_rect.radius
 					if (max(center.left - child.x, 0, child.x - center.right) ** 2) + \
-					   (max(center.top - child.y, 0, child.y - center.bottom) ** 2) <= \
+					   (max(center. top - child.y, 0, child.y - center.bottom) ** 2) <= \
 					   radius_rect.radius_squared:
 						#print 'found ', (self.x, self.y)
 						callback(child.data)
 		else:
-			quadrants_to_search = None
 			# we need 2 comparisions for x- and y-axis each, since
 			# we are comparing 2 lines (rect boundaries w.r.t. x- and y-axis) to the axis
 
@@ -217,8 +216,10 @@ class _Node(object):
 				quadrants_to_search.discard(0)
 				quadrants_to_search.discard(1)
 
-			for quadrant in quadrants_to_search:
-				child = self.children[quadrant]
+			#for quadrant in quadrants_to_search:
+			#	child = self.children[quadrant]
+			# TODO: test this for performance
+			for child in (self.children[quadrant] for quadrant in quadrants_to_search):
 				if child is not None:
 					full_child_included = False
 					# only check if full child is included if children are smaller than the radius

@@ -21,8 +21,10 @@
 
 from fife import fife
 import horizons.main
+import time
 
 from horizons.util.living import LivingObject
+from horizons.util import WorldObject
 
 class IngameKeyListener(fife.IKeyListener, LivingObject):
 	"""KeyListener Class to process key presses ingame"""
@@ -137,6 +139,53 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 			self.session.quicksave()
 		elif keyval == fife.Key.F9:
 			self.session.quickload()
+		elif keystr == 't':
+			# test performance
+			print 'running tests'
+			"""
+			settler: wide range (12), 2x2
+			weaver: medium range (8), 2x2
+			market place: wide range (12), 6x6
+
+			small ranged buildings are not considerered
+			(performance for very small ranges doesn't matter)
+			"""
+			testcases = [
+			  100012, # settler left; mostly water, some trees
+			  100007, # settler center; some buildings (trees)
+			  100080, # settler right top; nearly only water; hardly any buildings
+			  100089, # settler bottom; 1/3 water, many buildings
+			  100103, # settler right; mostly no settlement; some buildings
+			  100097, # weaver right; nearly only water
+			  100094, # weaver bottom; mostly water; many buildings (trees)
+			  100100, # weaver center; only land; some buildings
+			  100087, # market place; mostly water; some buildings
+			  100085 # market place; water and land; some buildings
+			  ]
+
+			avg = lambda l : float(sum(l)) / len(l)
+
+			results = dict.fromkeys(testcases) # map testid -> result
+			for testid in testcases:
+				results[testid] = []
+				obj = WorldObject.get_object_by_id(testid)
+				print 'testing ', testid
+				for i in xrange(10):
+					a = time.time()
+					obj.select()
+					b = time.time()
+					results[testid].append(b-a)
+					obj.deselect()
+				print 'l: ', results[testid]
+				print 'avg: ', avg(results[testid])
+
+			print 'done'
+			all_results =[]
+			for i in results.itervalues():
+				all_results.extend(i)
+			print 'global sum: ', sum(all_results)
+			print 'global avg: ', avg(all_results)
+
 		else:
 			return
 		evt.consume()

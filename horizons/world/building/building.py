@@ -297,15 +297,18 @@ class SelectableBuilding(object):
 		renderer.addOutlined(self._instance, self.selection_color[0], self.selection_color[1], \
 								         self.selection_color[2], 1)
 		self.__class__._selected_tiles = [] # TODO: this should be already empty here
-		"""
+		print 'selecting world id: ', self.worldid
 		import cProfile as profile
 		import tempfile
+		import time
 		outfilename = tempfile.mkstemp(text = True)[1]
-		print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
+		#print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
 		print 'profile to ', outfilename
-		profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
-		"""
+		#profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
+		a = time.time()
 		self._do_select(renderer, self.position, self.session.world, self.settlement)
+		b = time.time()
+		print 'took: ', b-a
 
 	def deselect(self):
 		"""Runs neccassary steps to deselect the building."""
@@ -333,7 +336,7 @@ class SelectableBuilding(object):
 		outfilename = tempfile.mkstemp(text = True)[1]
 		print 'profile to ', outfilename
 		# check if preview only moved a short distance (update instead of full redraw in this case)
-		if hasattr(cls, "old_position") and \
+		if False and hasattr(cls, "old_position") and \
 		   abs(position.left - cls.old_position.left) <= 1 and \
 		   abs(position.top - cls.old_position.top) <= 1:
 			# position only changed at most one tile in both dimensions.
@@ -347,8 +350,8 @@ class SelectableBuilding(object):
 			"""
 			print 'full recalc & redraw'
 			cls.deselect_building(session)
-			#cls._do_select(renderer, position, session.world, settlement)
-			profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
+			cls._do_select(renderer, position, session.world, settlement)
+			#profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
 
 		cls.old_position = position
 
@@ -373,7 +376,6 @@ class SelectableBuilding(object):
 		# NOTE: only works if settlement is ground_holder
 		ground_holder = settlement
 		selected_tiles = set(cls._selected_tiles)
-		#import pdb ; pdb.set_trace()
 		def sign(x):
 			if x < 0 : return -1
 			elif x == 0: return 0
@@ -427,7 +429,7 @@ class SelectableBuilding(object):
 			else:
 				ground_holder = settlement
 
-			selection_type = "cb3" # old | cb | cb2 | cb3 | iter | iter3
+			selection_type = "old" # old | cb | cb2 | cb3 | iter | iter3
 
 			if selection_type == "old":
 				for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
