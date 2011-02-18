@@ -297,18 +297,22 @@ class SelectableBuilding(object):
 		renderer.addOutlined(self._instance, self.selection_color[0], self.selection_color[1], \
 								         self.selection_color[2], 1)
 		self.__class__._selected_tiles = [] # TODO: this should be already empty here
+		"""
 		print 'selecting world id: ', self.worldid
 		import cProfile as profile
 		import tempfile
 		import time
 		outfilename = tempfile.mkstemp(text = True)[1]
 		#print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
-		print 'profile to ', outfilename
+		#print 'profile to ', outfilename
 		#profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
 		a = time.time()
+		"""
 		self._do_select(renderer, self.position, self.session.world, self.settlement)
+		"""
 		b = time.time()
 		print 'took: ', b-a
+		"""
 
 	def deselect(self):
 		"""Runs neccassary steps to deselect the building."""
@@ -429,7 +433,7 @@ class SelectableBuilding(object):
 			else:
 				ground_holder = settlement
 
-			selection_type = "old" # old | cb | cb2 | cb3 | iter | iter3
+			selection_type = "cb3" # old | cb | cb2 | cb3 | iter | iter3
 
 			if selection_type == "old":
 				for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):

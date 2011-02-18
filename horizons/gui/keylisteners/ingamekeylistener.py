@@ -21,7 +21,9 @@
 
 from fife import fife
 import horizons.main
+
 import time
+import math
 
 from horizons.util.living import LivingObject
 from horizons.util import WorldObject
@@ -150,41 +152,84 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 			small ranged buildings are not considerered
 			(performance for very small ranges doesn't matter)
 			"""
-			testcases = [
-			  100012, # settler left; mostly water, some trees
-			  100007, # settler center; some buildings (trees)
-			  100080, # settler right top; nearly only water; hardly any buildings
-			  100089, # settler bottom; 1/3 water, many buildings
-			  100103, # settler right; mostly no settlement; some buildings
-			  100097, # weaver right; nearly only water
-			  100094, # weaver bottom; mostly water; many buildings (trees)
-			  100100, # weaver center; only land; some buildings
-			  100087, # market place; mostly water; some buildings
-			  100085 # market place; water and land; some buildings
-			  ]
+			testcases = {
+			  100012: "settler left; mostly water, some trees",
+			  100007: "settler center; some buildings (trees)",
+			  100080: "settler right top; nearly only water; hardly any buildings",
+			  100089: "settler bottom; 1/3 water, many buildings",
+			  100103: "settler right; mostly no settlement; some buildings",
+			  100097: "weaver right; nearly only water",
+			  100094: "weaver bottom; mostly water; many buildings (trees)",
+			  100100: "weaver center; only land; some buildings",
+			  100087: "market place; mostly water; some buildings",
+			  100085: "market place; water and land; some buildings"
+			  }
+
+			categories = {
+			  'settler' : [100012, 100007, 100080, 100089, 100103],
+				'weaver' : [100097, 100094, 100100],
+				'market' : [100087, 100085]
+				}
 
 			avg = lambda l : float(sum(l)) / len(l)
+			def med(l_orig):
+				l = sorted(l_orig)
+				if len(l) % 2 == 0:
+					return float(l[ (len(l)/2) - 1 ] + l[ (len(l)/2) ]) / 2
+				else:
+					return l[ len(l)/2 ]
+			def var(l):
+				u = avg(l)
+				var_sum = 0.0
+				for i in l:
+					var_sum += math.pow(i - u, 2)
+				return var_sum / len(l)
+			std_deriv = lambda l : math.sqrt(var(l))
 
-			results = dict.fromkeys(testcases) # map testid -> result
+			RUNS_PER_TESTCASE = 100
+
+			results = dict.fromkeys(testcases.iterkeys()) # map testid -> result
 			for testid in testcases:
 				results[testid] = []
 				obj = WorldObject.get_object_by_id(testid)
 				print 'testing ', testid
-				for i in xrange(10):
+				for i in xrange(RUNS_PER_TESTCASE):
 					a = time.time()
 					obj.select()
 					b = time.time()
 					results[testid].append(b-a)
 					obj.deselect()
-				print 'l: ', results[testid]
-				print 'avg: ', avg(results[testid])
+				#print 'avg: ', avg(results[testid])
+
+			def analyse_category(cases):
+				all_results =[]
+				for case in cases: all_results.extend( results[case] )
+				print 'avg: ', avg(all_results)
+				print 'sdr: ', std_deriv(all_results)
+				print 'med: ', med(all_results)
+				print 'min: ', min(all_results)
+				print 'rng: ', max(all_results) - min(all_results)
 
 			print 'done'
-			all_results =[]
-			for i in results.itervalues():
-				all_results.extend(i)
-			print 'global sum: ', sum(all_results)
-			print 'global avg: ', avg(all_results)
+
+			print 'results per test:'
+			for case, description in testcases.iteritems():
+				cat = ""
+				for cat_i, cases in categories.iteritems():
+					if case in cases:
+						cat = cat_i
+				print 'results for ', description, ' of cat ', cat
+				analyse_category([case])
+				print
+
+			print 'results per categories:'
+			for cat, cases in categories.iteritems():
+				print 'category ', cat
+				analyse_category(cases)
+				print
+
+			print 'all results combined'
+			analyse_category(testcases)
 
 		else:
 			return
