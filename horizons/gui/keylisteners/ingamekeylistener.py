@@ -23,7 +23,10 @@ from fife import fife
 import horizons.main
 
 import time
+import sys
 import math
+import os.path
+import yaml
 
 from horizons.util.living import LivingObject
 from horizons.util import WorldObject
@@ -209,9 +212,10 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 				print 'med: ', med(all_results)
 				print 'min: ', min(all_results)
 				print 'rng: ', max(all_results) - min(all_results)
+				return med(all_results)
 
 			print 'done'
-
+			meds = []
 			print 'results per test:'
 			for case, description in testcases.iteritems():
 				cat = ""
@@ -219,17 +223,35 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 					if case in cases:
 						cat = cat_i
 				print 'results for ', description, ' of cat ', cat
-				analyse_category([case])
+				m = analyse_category([case])
+				meds.append(m)
 				print
 
 			print 'results per categories:'
 			for cat, cases in categories.iteritems():
 				print 'category ', cat
-				analyse_category(cases)
+				m = analyse_category(cases)
+				meds.append(m)
 				print
 
 			print 'all results combined'
-			analyse_category(testcases)
+			m = analyse_category(testcases)
+			meds.append(m)
+
+			print
+
+			meds_file = '/tmp/profile_test_meds'
+			if True or os.path.exists(meds_file):
+				print 'enter postfix for profile file:'
+				postfix = sys.stdin.read()
+				old_meds = yaml.load(open(meds_file + '-' +postfix, 'r'))
+				print 'median comparison w/ last run'
+				for i in xrange(len(meds)):
+					print meds[i] - old_meds[i], ' ', meds[i] / old_meds[i]
+				print 'median sum comparision'
+				print sum(meds) - sum(old_meds), ' ', sum(meds) / sum(old_meds)
+
+			yaml.dump(meds, open(meds_file, 'w'))
 
 		else:
 			return
