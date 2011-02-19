@@ -297,22 +297,21 @@ class SelectableBuilding(object):
 		renderer.addOutlined(self._instance, self.selection_color[0], self.selection_color[1], \
 								         self.selection_color[2], 1)
 		self.__class__._selected_tiles = [] # TODO: this should be already empty here
-		"""
-		print 'selecting world id: ', self.worldid
-		import cProfile as profile
-		import tempfile
-		import time
-		outfilename = tempfile.mkstemp(text = True)[1]
-		#print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
-		#print 'profile to ', outfilename
-		#profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
-		a = time.time()
-		"""
-		self._do_select(renderer, self.position, self.session.world, self.settlement)
-		"""
-		b = time.time()
-		print 'took: ', b-a
-		"""
+		profile = False
+		if profile:
+			print 'selecting world id: ', self.worldid
+			import cProfile as profile
+			import tempfile
+			outfilename = tempfile.mkstemp(text = True)[1]
+			#print >>open("/tmp/a", "a"), "\n--- NEW DATA --\n"
+			print 'profile to ', outfilename
+			profile.runctx("self._do_select(renderer, self.position, self.session.world, self.settlement)", globals(), locals(), outfilename)
+		else:
+			#import time
+			#a = time.time()
+			self._do_select(renderer, self.position, self.session.world, self.settlement)
+			#b = time.time()
+			#print 'took: ', b-a
 
 	def deselect(self):
 		"""Runs neccassary steps to deselect the building."""
@@ -449,13 +448,11 @@ class SelectableBuilding(object):
 			# version with callback
 			if selection_type == "cb":
 				def cb(tile):
-					try:
-						selected_tiles_add(tile)
-						add_colored(tile._instance, *cls.selection_color)
-						# Add color to a building or tree that is present on the tile
+					selected_tiles_add(tile)
+					add_colored(tile._instance, *cls.selection_color)
+					# Add color to a building or tree that is present on the tile
+					if tile.object is not None:
 						add_colored(tile.object._instance, *cls.selection_color)
-					except AttributeError:
-						pass # no tile or no object on tile
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, cb)
 
 			if selection_type == "cb2":

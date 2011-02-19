@@ -67,11 +67,18 @@ class _Node(object):
 			# keep list of data that is stored in all children for smaller nodes
 			self.child_data = []
 
+		# list of non-null children
+		self.existing_children = []
+
 		# eager evaluation
 		self.left = self.x - width_of_children
 		self.right = self.x + width_of_children
 		self.top = self.y - width_of_children
 		self.bottom = self.y + width_of_children
+
+		# special code for last non-leaf level. see @__visit_radius_tiles_last_level
+		if self.width_of_children == 1:
+			self.visit_radius_tiles = self.__visit_radius_tiles_last_level
 
 	def create_child(self, quadrant):
 		"""
@@ -90,7 +97,11 @@ class _Node(object):
 			# the final coord of the last tile has to be corrected here
 			direction = self.leaf_quadrant_directions[quadrant]
 			self.children[quadrant] = \
-			    _Node(self, self.x + direction[0], self.y + direction[1], 0)
+			    _Node(self, \
+			          self.x + direction[0], \
+			          self.y + direction[1], \
+			          0)
+		self.existing_children.append( self.children[quadrant] )
 
 	def get_child_quadrant(self, x, y):
 		"""Returns id of quadrant, where an object at x, y can be found"""
@@ -127,9 +138,8 @@ class _Node(object):
 				for data in self.child_data:
 					callback(data)
 			except AttributeError:  # visit_tiles is usually only used for smaller nodes, so this is unlikely
-				for child in self.children:
-					if child is not None:
-						child.visit_tiles(callback)
+				for child in self.existing_children:
+					child.visit_tiles(callback)
 
 	def get_radius_tiles(self, radius_rect):
 		"""TODO: unsused and outdate.
@@ -178,78 +188,84 @@ class _Node(object):
 						for tile in self.children[3].get_radius_tiles(radius_rect):
 							yield tile
 
-	def visit_radius_tiles(self, radius_rect, callback):
+
+	def __visit_radius_tiles_last_level(self, radius_rect, callback):
+		"""visit_radius_tile code for nodes directly above leaf-level.
+		Since the level of a node is constant, the visit_radius_tiles-code
+		of those nodes get's replaced by this in the constructor.
+		A more intuitive, but slightly less efficient version would be to query
+		the level, and then decide which code to run at runtime:
 		if self.width_of_children == 1:
-			#print 'checking ', (self.x, self.y)
-
-			# finish checking here, not at acctual leaf level,
-			# because checking if full child is contained in the radius
-			# doesn't make sense here anymore
-
-			center = radius_rect.center
-			for child in self.children:
-				if child is not None:
-					# this if is an inline version of:
-					#if radius_rect.center.distance_to_tuple((child.x, child.y)) <= radius_rect.radius
-					if (max(center.left - child.x, 0, child.x - center.right) ** 2) + \
-					   (max(center. top - child.y, 0, child.y - center.bottom) ** 2) <= \
-					   radius_rect.radius_squared:
-						#print 'found ', (self.x, self.y)
-						callback(child.data)
+		  last_level()
 		else:
-			# we need 2 comparisions for x- and y-axis each, since
-			# we are comparing 2 lines (rect boundaries w.r.t. x- and y-axis) to the axis
+		  normal_code()
+		The purpose of this optimisation is to get rid of the if.
+		"""
+		# finish checking here, not at acctual leaf level,
+		# because checking if full child is contained in the radius
+		# doesn't make sense here anymore
+		center = radius_rect.center
+		for child in self.existing_children:
+			# this if is an inline version of:
+			#if radius_rect.center.distance_to_tuple((child.x, child.y)) <= radius_rect.radius
+			if (max(center.left - child.x, 0, child.x - center.right) ** 2) + \
+			    (max(center. top - child.y, 0, child.y - center.bottom) ** 2) <= \
+			    radius_rect.radius_squared:
+				#print 'found ', (self.x, self.y)
+				callback(child.data)
 
-			if radius_rect.left_radius_border < self.x: # search left side for sure
-				if radius_rect.right_radius_border < self.x:
-					quadrants_to_search = set((0,2))
+	def visit_radius_tiles(self, radius_rect, callback):
+		# we need 2 comparisions for x- and y-axis each, since
+		# we are comparing 2 lines (rect boundaries w.r.t. x- and y-axis) to the axis
+
+		if radius_rect.left_radius_border < self.x: # search left side for sure
+			if radius_rect.right_radius_border < self.x:
+				quadrants_to_search = set((0,2))
+			else:
+				quadrants_to_search = set((0,1,2,3))
+		else:
+			quadrants_to_search = set((1,3))
+
+		if radius_rect.top_radius_border < self.y: # search top for sure
+			if radius_rect.bottom_radius_border < self.y:
+				quadrants_to_search.discard(2)
+				quadrants_to_search.discard(3)
+		else:
+			quadrants_to_search.discard(0)
+			quadrants_to_search.discard(1)
+
+		for quadrant in quadrants_to_search:
+			child = self.children[quadrant]
+			if child is not None:
+				full_child_included = False
+				# only check if full child is included if children are smaller than the radius
+				if self.width_of_children < radius_rect.radius:
+					# search corner of child farthest away from the radius_rect
+					center = radius_rect.center
+					center_point = ((center.right + center.left) // 2, \
+				                  (center.bottom + center.top) // 2)
+
+					diff_left = abs(child.left - center_point[0])
+					diff_right = abs(child.right - center_point[0])
+					farthest_x = child.left if diff_left >= diff_right else child.right
+
+					diff_top = abs(child.top - center_point[1])
+					diff_bottom = abs(child.bottom - center_point[1])
+					farthest_y = child.top if diff_top >= diff_bottom else child.bottom
+
+					# this if is an inline version of:
+					#if radius_rect.center.distance_to_tuple((farthest_x, farthest_y)) < radius_rect.radius:
+					if (max(center.left - farthest_x, 0, farthest_x - center.right) ** 2) + \
+				     (max(center.top - farthest_y, 0, farthest_y - center.bottom) ** 2) <= \
+				     radius_rect.radius_squared:
+						full_child_included = True
+
+				if full_child_included:
+					# full rect is included
+					child.visit_tiles(callback)
 				else:
-					quadrants_to_search = set((0,1,2,3))
-			else:
-				quadrants_to_search = set((1,3))
-
-			if radius_rect.top_radius_border < self.y: # search top for sure
-				if radius_rect.bottom_radius_border < self.y:
-					quadrants_to_search.discard(2)
-					quadrants_to_search.discard(3)
-			else:
-				quadrants_to_search.discard(0)
-				quadrants_to_search.discard(1)
-
-			#for quadrant in quadrants_to_search:
-			#	child = self.children[quadrant]
-			# TODO: test this for performance
-			for child in (self.children[quadrant] for quadrant in quadrants_to_search):
-				if child is not None:
-					full_child_included = False
-					# only check if full child is included if children are smaller than the radius
-					if self.width_of_children < radius_rect.radius:
-						# search corner of child farthest away from the radius_rect
-						center = radius_rect.center
-						center_point = ((center.right + center.left) // 2, \
-							              (center.bottom + center.top) // 2)
-
-						diff_left = abs(child.left - center_point[0])
-						diff_right = abs(child.right - center_point[0])
-						farthest_x = child.left if diff_left >= diff_right else child.right
-
-						diff_top = abs(child.top - center_point[1])
-						diff_bottom = abs(child.bottom - center_point[1])
-						farthest_y = child.top if diff_top >= diff_bottom else child.bottom
-
-						# this if is an inline version of:
-						#if radius_rect.center.distance_to_tuple((farthest_x, farthest_y)) < radius_rect.radius:
-						if (max(center.left - farthest_x, 0, farthest_x - center.right) ** 2) + \
-						   (max(center.top - farthest_y, 0, farthest_y - center.bottom) ** 2) <= \
-						   radius_rect.radius_squared:
-							full_child_included = True
-
-					if full_child_included:
-						# full rect is included
-						child.visit_tiles(callback)
-					else:
-						# go on checking on lower level
-						child.visit_radius_tiles(radius_rect, callback)
+					# go on checking on lower level
+					child.visit_radius_tiles(radius_rect, callback)
 
 
 	def __str__(self):

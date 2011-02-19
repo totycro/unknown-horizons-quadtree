@@ -243,13 +243,21 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 			meds_file = '/tmp/profile_test_meds'
 			if True or os.path.exists(meds_file):
 				print 'enter postfix for profile file:'
-				postfix = sys.stdin.read()
-				old_meds = yaml.load(open(meds_file + '-' +postfix, 'r'))
-				print 'median comparison w/ last run'
-				for i in xrange(len(meds)):
-					print meds[i] - old_meds[i], ' ', meds[i] / old_meds[i]
-				print 'median sum comparision'
-				print sum(meds) - sum(old_meds), ' ', sum(meds) / sum(old_meds)
+				postfix = sys.stdin.read(); print
+				old_meds = None
+				try:
+					old_meds = yaml.load(open(meds_file + '-' +postfix, 'r'))
+				except IOError:
+					print 'NO SUCH FILE'
+				if old_meds != None:
+
+					print 'median comparison w/ last run\ncurrent - old;  current/old; old/current'
+					for i in xrange(len(meds)):
+						print meds[i] - old_meds[i], ' ', meds[i]/old_meds[i], \
+							    ' ', old_meds[i]/meds[i]
+					print 'median sum comparision'
+					print sum(meds) - sum(old_meds), ' ', sum(meds)/sum(old_meds), \
+						    ' ', sum(old_meds)/sum(meds)
 
 			yaml.dump(meds, open(meds_file, 'w'))
 
