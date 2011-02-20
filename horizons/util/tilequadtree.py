@@ -19,6 +19,8 @@
 # 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 # ###################################################
 
+from horizons.util.python import decorators
+
 class _RadiusRect(object):
 	"""Auxilary data structure for local use in this file.
 	Mimics a Rectangle with a radius."""
@@ -374,4 +376,8 @@ class TileQuadTree(object):
 		while n < number:
 			n *= 2
 		return n
+
+decorators.bind_all(TileQuadTree)
+decorators.bind_all(_Node)
+decorators.bind_all(_RadiusRect)
 
