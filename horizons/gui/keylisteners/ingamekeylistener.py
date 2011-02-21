@@ -165,13 +165,17 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 			  100094: "weaver bottom; mostly water; many buildings (trees)",
 			  100100: "weaver center; only land; some buildings",
 			  100087: "market place; mostly water; some buildings",
-			  100085: "market place; water and land; some buildings"
+			  100085: "market place; water and land; some buildings",
+			  100108: "storage tent; full settlement, water and land",
+			  100002: "branch office; full settlement, water and land"
 			  }
 
 			categories = {
 			  'settler' : [100012, 100007, 100080, 100089, 100103],
 				'weaver' : [100097, 100094, 100100],
-				'market' : [100087, 100085]
+				'market' : [100087, 100085],
+				'storage tent' : [100108],
+				'branch office' : [100002]
 				}
 
 			avg = lambda l : float(sum(l)) / len(l)
@@ -212,10 +216,10 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 				print 'med: ', med(all_results)
 				print 'min: ', min(all_results)
 				print 'rng: ', max(all_results) - min(all_results)
-				return med(all_results)
+				return min(all_results)
 
 			print 'done'
-			meds = []
+			main_values = []
 			print 'results per test:'
 			for case, description in testcases.iteritems():
 				cat = ""
@@ -224,42 +228,51 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 						cat = cat_i
 				print 'results for ', description, ' of cat ', cat
 				m = analyse_category([case])
-				meds.append(m)
+				main_values.append((str(case) + " "+ testcases[case], m))
 				print
 
-			print 'results per categories:'
+			print 'results per categories: (keep in mind: data ge\'ts mixed up here)'
 			for cat, cases in categories.iteritems():
 				print 'category ', cat
 				m = analyse_category(cases)
-				meds.append(m)
+				main_values.append((cat, m))
 				print
 
-			print 'all results combined'
+			print 'all results combined (keep in mind: data ge\'ts mixed up here)'
 			m = analyse_category(testcases)
-			meds.append(m)
+			#main_values.append(("all", m))
 
 			print
 
-			meds_file = '/tmp/profile_test_meds'
-			if True or os.path.exists(meds_file):
+			main_values_file = '/tmp/profile_test_main_values'
+			if True or os.path.exists(main_values_file):
 				print 'enter postfix for profile file:'
 				postfix = sys.stdin.read(); print
-				old_meds = None
+				old_ms = None
 				try:
-					old_meds = yaml.load(open(meds_file + '-' +postfix, 'r'))
+					old_ms = yaml.load(open(main_values_file + '-' +postfix, 'r'))
 				except IOError:
 					print 'NO SUCH FILE'
-				if old_meds != None:
+				if old_ms != None:
 
-					print 'median comparison w/ last run\ncurrent - old;  current/old; old/current'
-					for i in xrange(len(meds)):
-						print meds[i] - old_meds[i], ' ', meds[i]/old_meds[i], \
-							    ' ', old_meds[i]/meds[i]
-					print 'median sum comparision'
-					print sum(meds) - sum(old_meds), ' ', sum(meds)/sum(old_meds), \
-						    ' ', sum(old_meds)/sum(meds)
+					print 'main value comparison w/ last run\ncurrent - old;  current/old; old/current'
+					for i in xrange(len(main_values)):
+						new = main_values[i][1]
+						old = old_ms[i][1]
+						if main_values[i][0] != old_ms[i][0]:
+							print 'INVALID COMPARISON'
+						print new - old, ' ', new/old, ' ', old/new, 'for', main_values[i][0]
+						#print main_values[i][1] - old_ms[i], ' ', main_values[i]/old_ms[i], \
+						#	    ' ', old_ms[i]/main_values[i]
+					print 'main value sum comparision'
+					sum_new = sum(i[1] for i in main_values)
+					sum_old = sum(i[1] for i in old_ms)
 
-			yaml.dump(meds, open(meds_file, 'w'))
+					print sum_new-sum_old, ' ', sum_new/sum_old, ' ', sum_old/sum_new
+					#print sum(main_values) - sum(old_ms), ' ', sum(main_values)/sum(old_ms), \
+					#	    ' ', sum(old_ms)/sum(main_values)
+
+			yaml.dump(main_values, open(main_values_file, 'w'))
 
 		else:
 			return

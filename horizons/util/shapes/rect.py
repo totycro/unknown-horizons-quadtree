@@ -238,8 +238,6 @@ class Rect(object):
 		Here, since we only got along one axis, we know that the border coords are right + radius, etc.
 		q.e.d. ;)
 		"""
-
-
 		borders = {}
 
 		# start with special case

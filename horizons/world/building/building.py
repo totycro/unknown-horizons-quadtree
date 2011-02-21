@@ -436,17 +436,15 @@ class SelectableBuilding(object):
 
 			if selection_type == "old":
 				for tile in ground_holder.get_tiles_in_radius(position, cls.radius, include_self=True):
-					try:
-						if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
-							selected_tiles_add(tile)
-							add_colored(tile._instance, *cls.selection_color)
-							# Add color to a building or tree that is present on the tile
+					if ( 'constructible' in tile.classes or 'coastline' in tile.classes ):
+						selected_tiles_add(tile)
+						add_colored(tile._instance, *cls.selection_color)
+						# Add color to a building or tree that is present on the tile
+						if tile.object is not None:
 							add_colored(tile.object._instance, *cls.selection_color)
-					except AttributeError:
-						pass # no tile or no object on tile
 
 			# version with callback
-			if selection_type == "cb":
+			elif selection_type == "cb":
 				def cb(tile):
 					selected_tiles_add(tile)
 					add_colored(tile._instance, *cls.selection_color)
@@ -455,7 +453,7 @@ class SelectableBuilding(object):
 						add_colored(tile.object._instance, *cls.selection_color)
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, cb)
 
-			if selection_type == "cb2":
+			elif selection_type == "cb2":
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
 				for tile in cls._selected_tiles:
 					try:
@@ -465,7 +463,7 @@ class SelectableBuilding(object):
 					except AttributeError:
 						pass # no tile or no object on tile
 
-			if selection_type == "cb3":
+			elif selection_type == "cb3":
 				#"""
 				settlement.tilequadtree.visit_radius_tiles(position, cls.radius, selected_tiles_add)
 				for tile in cls._selected_tiles:
@@ -486,7 +484,7 @@ class SelectableBuilding(object):
 						add_colored(tile.object._instance, *cls.selection_color)
 				#"""
 
-			if selection_type == "iter":
+			elif selection_type == "iter":
 				# version with iteration
 				for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
 					try:
@@ -497,7 +495,7 @@ class SelectableBuilding(object):
 					except AttributeError:
 						pass # no tile or no object on tile
 
-			if selection_type == "iter3":
+			elif selection_type == "iter3":
 				# version with iteration
 				for tile in settlement.tilequadtree.get_radius_tiles(position, cls.radius):
 					selected_tiles_add(tile)
