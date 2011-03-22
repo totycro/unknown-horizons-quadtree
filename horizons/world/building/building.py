@@ -353,8 +353,8 @@ class SelectableBuilding(object):
 			"""
 			print 'full recalc & redraw'
 			cls.deselect_building(session)
-			cls._do_select(renderer, position, session.world, settlement)
-			#profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
+			#cls._do_select(renderer, position, session.world, settlement)
+			profile.runctx( "cls._do_select(renderer, position, session.world, settlement)", globals(), locals(), outfilename)
 
 		cls.old_position = position
 

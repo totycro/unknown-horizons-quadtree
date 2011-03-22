@@ -151,23 +151,24 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 			settler: wide range (12), 2x2
 			weaver: medium range (8), 2x2
 			market place: wide range (12), 6x6
+			branch office/storage tent: extra wide range (24), 2x2
 
 			small ranged buildings are not considerered
 			(performance for very small ranges doesn't matter)
 			"""
 			testcases = {
-			  100012: "settler left; mostly water, some trees",
-			  100007: "settler center; some buildings (trees)",
-			  100080: "settler right top; nearly only water; hardly any buildings",
-			  100089: "settler bottom; 1/3 water, many buildings",
-			  100103: "settler right; mostly no settlement; some buildings",
-			  100097: "weaver right; nearly only water",
-			  100094: "weaver bottom; mostly water; many buildings (trees)",
-			  100100: "weaver center; only land; some buildings",
-			  100087: "market place; mostly water; some buildings",
-			  100085: "market place; water and land; some buildings",
-			  100108: "storage tent; full settlement, water and land",
-			  100002: "branch office; full settlement, water and land"
+			  100012: "settler left, mostly water, some trees",
+			  100007: "settler center, some buildings (trees)",
+			  100080: "settler right top, nearly only water, hardly any buildings",
+			  100089: "settler bottom, 1/3 water, many buildings",
+			  100103: "settler right, mostly no settlement, some buildings",
+			  100097: "weaver right, nearly only water",
+			  100094: "weaver bottom, mostly water, many buildings (trees)",
+			  100100: "weaver center, only land, some buildings",
+			  100087: "market place, mostly water, some buildings",
+			  100085: "market place, water and land, some buildings",
+			  100108: "storage tent, full settlement, water and land",
+			  100002: "branch office, full settlement, water and land"
 			  }
 
 			categories = {
@@ -216,7 +217,7 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 				print 'med: ', med(all_results)
 				print 'min: ', min(all_results)
 				print 'rng: ', max(all_results) - min(all_results)
-				return min(all_results)
+				return (avg(all_results), std_deriv(all_results))
 
 			print 'done'
 			main_values = []
@@ -231,22 +232,22 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 				main_values.append((str(case) + " "+ testcases[case], m))
 				print
 
-			print 'results per categories: (keep in mind: data ge\'ts mixed up here)'
+			print 'results per categories: (keep in mind: data get\'s mixed up here)'
 			for cat, cases in categories.iteritems():
 				print 'category ', cat
 				m = analyse_category(cases)
 				main_values.append((cat, m))
 				print
 
-			print 'all results combined (keep in mind: data ge\'ts mixed up here)'
+			print 'all results combined (keep in mind: data get\'s mixed up here)'
 			m = analyse_category(testcases)
-			#main_values.append(("all", m))
+			main_values.append(("all", m))
 
 			print
 
 			main_values_file = '/tmp/profile_test_main_values'
 			if True or os.path.exists(main_values_file):
-				print 'enter postfix for profile file:'
+				print 'enter postfix for profile file to compare with:'
 				postfix = sys.stdin.read(); print
 				old_ms = None
 				try:
@@ -257,16 +258,16 @@ class IngameKeyListener(fife.IKeyListener, LivingObject):
 
 					print 'main value comparison w/ last run\ncurrent - old;  current/old; old/current'
 					for i in xrange(len(main_values)):
-						new = main_values[i][1]
-						old = old_ms[i][1]
+						new = main_values[i][1][0]
+						old = old_ms[i][1][0]
 						if main_values[i][0] != old_ms[i][0]:
 							print 'INVALID COMPARISON'
 						print new - old, ' ', new/old, ' ', old/new, 'for', main_values[i][0]
 						#print main_values[i][1] - old_ms[i], ' ', main_values[i]/old_ms[i], \
 						#	    ' ', old_ms[i]/main_values[i]
 					print 'main value sum comparision'
-					sum_new = sum(i[1] for i in main_values)
-					sum_old = sum(i[1] for i in old_ms)
+					sum_new = sum(i[1][0] for i in main_values)
+					sum_old = sum(i[1][0] for i in old_ms)
 
 					print sum_new-sum_old, ' ', sum_new/sum_old, ' ', sum_old/sum_new
 					#print sum(main_values) - sum(old_ms), ' ', sum(main_values)/sum(old_ms), \

@@ -236,6 +236,34 @@ class _Node(object):
 			quadrants_to_search.discard(0)
 			quadrants_to_search.discard(1)
 
+		""" This code does not make the code measurably faster than the version above
+		if radius_rect.left_radius_border < self.x: # search left side for sure
+			if radius_rect.right_radius_border < self.x:
+				if radius_rect.top_radius_border < self.y: # search top for sure
+					if radius_rect.bottom_radius_border < self.y:
+						quadrants_to_search = (0,)
+					else:
+						quadrants_to_search = (0,2)
+				else:
+					quadrants_to_search = (2,)
+			else:
+				if radius_rect.top_radius_border < self.y: # search top for sure
+					if radius_rect.bottom_radius_border < self.y:
+						quadrants_to_search = (0,1)
+					else:
+						quadrants_to_search = (0,1,2,3)
+				else:
+					quadrants_to_search = (1,2,3)
+		else:
+			if radius_rect.top_radius_border < self.y: # search top for sure
+				if radius_rect.bottom_radius_border < self.y:
+					quadrants_to_search = (1,)
+				else:
+					quadrants_to_search = (1,3)
+			else:
+				quadrants_to_search = (3,)
+		"""
+
 		for quadrant in quadrants_to_search:
 			child = self.children[quadrant]
 			if child is not None:
